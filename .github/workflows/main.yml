@@ -30,9 +30,11 @@ jobs:
         run: esbmc seu_codigo.c --json-output results.json
         continue-on-error: true
 
-      # 4. Salva o arquivo results.json como um "artefato"
-      #    Isso permite que outros jobs (como o de deploy) façam o download deste arquivo.
+     # 4. Salva o arquivo results.json como um "artefato"
+      #    A condição 'if: always()' garante que este passo SEMPRE execute,
+      #    mesmo que o passo anterior (rodar o esbmc) tenha falhado.
       - name: Upload do artefato de resultados
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: esbmc-results
