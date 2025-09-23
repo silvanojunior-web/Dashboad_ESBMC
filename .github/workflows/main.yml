@@ -17,12 +17,11 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      # 2. Instala o ESBMC usando uma Action da comunidade (muito mais rápido que compilar)
+     # 2. Instala o ESBMC usando uma Action da comunidade (CORREÇÃO AQUI)
       - name: Instalar o ESBMC
-        uses: esbmc/setup-esbmc-action@v1
+        uses: esbmc/setup-esbmc@v1
         with:
-          # Você pode especificar uma versão do ESBMC se precisar
-          version: 'latest'
+          version: 'latest'       
 
       # 3. Executa a verificação com ESBMC
       #    'continue-on-error: true' é CRUCIAL. Garante que, mesmo se o ESBMC encontrar um erro
