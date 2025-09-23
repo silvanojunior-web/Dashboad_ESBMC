@@ -17,9 +17,9 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v4
 
-     # 2. Instala o ESBMC usando uma Action da comunidade (CORREÇÃO AQUI)
+    # 2. Instala o ESBMC usando a Action correta do Marketplace
       - name: Instalar o ESBMC
-        uses: esbmc/setup-esbmc@v1
+        uses: ssvlab/setup-esbmc-action@v1
         with:
           version: 'latest'       
 
