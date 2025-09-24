@@ -1,0 +1,38 @@
+# Nome da pipeline
+name: Deploy do Dashboard Estático para GitHub Pages
+
+# Gatilho: Roda a cada 'push' na branch 'main'
+on:
+  push:
+    branches: [ "main" ]
+
+# Permissões necessárias para que a Action possa escrever nas configurações do GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Define um único job chamado 'deploy'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Baixa o código do seu repositório (index.html, results.json, etc.)
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # 2. Configura o ambiente do GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 3. Pega todos os arquivos da raiz do projeto e os transforma em um "artefato" de site
+      - name: Upload do artefato do site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # '.' significa o diretório atual (a raiz do seu projeto)
+          path: '.'
+
+      # 4. Pega o artefato criado no passo anterior e faz o deploy para o GitHub Pages
+      - name: Deploy no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
