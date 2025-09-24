@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Dashboard iniciado. Tentando carregar results.json...");
     
-    fetch('results.json')
+    fetch('report.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -134,4 +134,5 @@ function renderizarTraco(steps) {
 
     traceContainer.innerHTML = html;
     document.getElementById('traco-execucao-container').classList.remove('hidden');
+
 }
