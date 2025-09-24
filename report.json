@@ -1,0 +1,215 @@
+[
+  {
+    "coverage": {
+      "files": {
+        "file.c": {
+          "coverage_stats": {
+            "covered_lines": 5,
+            "total_hits": 13
+          },
+          "covered_lines": {
+            "14": {
+              "covered": true,
+              "hits": 1,
+              "type": "execution"
+            },
+            "15": {
+              "covered": true,
+              "hits": 1,
+              "type": "execution"
+            },
+            "16": {
+              "covered": true,
+              "hits": 5,
+              "type": "violation"
+            },
+            "7": {
+              "covered": true,
+              "hits": 1,
+              "type": "execution"
+            },
+            "8": {
+              "covered": true,
+              "hits": 5,
+              "type": "violation"
+            }
+          }
+        }
+      }
+    },
+    "initial_values": {
+      "a": {
+        "name": "a",
+        "type": "pointer",
+        "value": {
+          "__type": "pointer",
+          "address": "(signed int *)0",
+          "value": "*(signed int *)0"
+        }
+      },
+      "b": {
+        "name": "b",
+        "type": "pointer",
+        "value": {
+          "__type": "pointer",
+          "address": "(signed int *)0",
+          "value": "*(signed int *)0"
+        }
+      }
+    },
+    "source_files": {
+      "file.c": [
+        "#include <stdlib.h>",
+        "int *a, *b;",
+        "int n;",
+        "#define BLOCK_SIZE 128",
+        "void foo () {",
+        "  int i;",
+        "  for (i = 0; i < n; i++)",
+        "    a[i] = -1;",
+        "  for (i = 0; i < BLOCK_SIZE - 1; i++)",
+        "    b[i] = -1;",
+        "}",
+        "int main () {",
+        "  n = BLOCK_SIZE;",
+        "  a = malloc (n * sizeof(*a));",
+        "  b = malloc (n * sizeof(*b));",
+        "  *b++ = 0;",
+        "  foo ();",
+        "  if (b[-1])",
+        "  { free(a); free(b); }",
+        "  else",
+        "  { free(a); free(b); }",
+        "  return 0;",
+        "}"
+      ]
+    },
+    "status": "violation",
+    "steps": [
+      {
+        "assignment": {
+          "lhs": "a",
+          "lhs_type": "pointer",
+          "rhs": {
+            "__type": "pointer",
+            "address": "(signed int *)0",
+            "value": "*(signed int *)0"
+          },
+          "rhs_type": "pointer"
+        },
+        "file": "file.c",
+        "function": "main",
+        "line": "14",
+        "step_number": 0,
+        "type": "assignment"
+      },
+      {
+        "assignment": {
+          "lhs": "b",
+          "lhs_type": "pointer",
+          "rhs": {
+            "__type": "pointer",
+            "address": "(signed int *)0",
+            "value": "*(signed int *)0"
+          },
+          "rhs_type": "pointer"
+        },
+        "file": "file.c",
+        "function": "main",
+        "line": "15",
+        "step_number": 1,
+        "type": "assignment"
+      },
+      {
+        "file": "file.c",
+        "function": "main",
+        "line": "16",
+        "step_number": 2,
+        "type": "assert"
+      },
+      {
+        "assertion": {
+          "comment": "dereference failure: NULL pointer",
+          "guard": "1",
+          "violated": true
+        },
+        "file": "file.c",
+        "function": "main",
+        "line": "16",
+        "message": "dereference failure: NULL pointer",
+        "step_number": 3,
+        "type": "violation"
+      },
+      {
+        "file": "file.c",
+        "function": "main",
+        "line": "16",
+        "step_number": 4,
+        "type": "assert"
+      },
+      {
+        "file": "file.c",
+        "function": "main",
+        "line": "16",
+        "step_number": 5,
+        "type": "assert"
+      },
+      {
+        "file": "file.c",
+        "function": "main",
+        "line": "16",
+        "step_number": 6,
+        "type": "assert"
+      },
+      {
+        "file": "file.c",
+        "function": "foo",
+        "line": "8",
+        "step_number": 7,
+        "type": "assert"
+      },
+      {
+        "assertion": {
+          "comment": "dereference failure: NULL pointer",
+          "guard": "1",
+          "violated": true
+        },
+        "file": "file.c",
+        "function": "foo",
+        "line": "8",
+        "message": "dereference failure: NULL pointer",
+        "step_number": 8,
+        "type": "violation"
+      },
+      {
+        "file": "file.c",
+        "function": "foo",
+        "line": "8",
+        "step_number": 9,
+        "type": "assert"
+      },
+      {
+        "file": "file.c",
+        "function": "foo",
+        "line": "8",
+        "step_number": 10,
+        "type": "assert"
+      },
+      {
+        "file": "file.c",
+        "function": "foo",
+        "line": "8",
+        "step_number": 11,
+        "type": "assert"
+      },
+      {
+        "file": "file.c",
+        "function": "foo",
+        "line": "7",
+        "message": "Assumption restriction",
+        "step_number": 12,
+        "type": "assume"
+      }
+    ]
+  }
+]
