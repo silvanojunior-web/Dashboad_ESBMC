@@ -1,43 +1,64 @@
-<section id="codigo-fonte-container" class="mb-4">
-    <h2 class="mb-3">Código Fonte Analisado</h2>
-    <div class="code-view border rounded shadow-sm">
-        <pre class="p-3 m-0"><code id="codigo-fonte" class="text-monospace">
-<div class="code-line-container">
-    <span class="line-number text-muted">1</span><span class="line-content">#include "lib.h"</span>
-</div>
-<div class="code-line-container">
-    <span class="line-number text-muted">2</span><span class="line-content">// Executando com esbmc --overflow-check...</span>
-</div>
-<div class="code-line-container">
-    <span class="line-number text-muted">3</span><span class="line-content">int main() {</span>
-</div>
-<div class="code-line-container">
-    <span class="line-number text-muted">4</span><span class="line-content">unsigned int x = nondet_uint();</span>
-</div>
-<div class="code-line-container violation-line bg-danger-subtle">
-    <span class="line-number text-muted">5</span><span class="line-content">while(x > 0) x--;</span>
-</div>
-<div class="code-line-container">
-    <span class="line-number text-muted">6</span><span class="line-content">/* Outras linhas */</span>
-</div>
-<div class="code-line-container">
-    <span class="line-number text-muted">7</span><span class="line-content">return 0;</span>
-</div>
-<div class="code-line-container">
-    <span class="line-number text-muted">8</span><span class="line-content">}</span>
-</div>
-        </code></pre>
-    </div>
-</section>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Avançado - ESBMC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Dashboard de Verificação Formal com ESBMC</h1>
+        <p>Resultado Detalhado da Última Análise</p>
+    </header>
 
-<section id="traco-execucao-container" class="mb-4">
-    <h2 class="mb-3">Traço de Execução (Contra-Exemplo)</h2>
-    <div class="trace-view border rounded p-3 bg-light shadow-sm">
-        <div id="traco-execucao">
-            <p class="trace-step step-assignment text-success-emphasis">[Passo 0] ASSIGNMENT @ unwind.c:4 -> <span class="fw-bold">x = 4</span></p>
-            <p class="trace-step step-assignment text-success-emphasis">[Passo 1] ASSIGNMENT @ unwind.c:5 -> <span class="fw-bold">x = 3</span></p>
-            <p class="trace-step step-assignment text-success-emphasis">[Passo 2] ASSIGNMENT @ unwind.c:5 -> <span class="fw-bold">x = 2</span></p>
-            <p class="trace-step step-violation text-danger-emphasis bg-danger-subtle p-2 rounded">[Passo 3] VIOLATION @ unwind.c:5 -> <span class="fw-bold">unwinding assertion loop 2</span></p>
+    <main>
+        <div id="status-geral" class="status-box">
+            <h2 id="status-texto">Carregando...</h2>
         </div>
-    </div>
-</section>
+
+        <section class="metricas-container">
+            <div class="kpi-card">
+                <h3>Total de Passos</h3>
+                <p id="total-steps">0</p>
+            </div>
+            <div class="kpi-card failure">
+                <h3>Violações</h3>
+                <p id="failure-checks">0</p>
+            </div>
+        </section>
+
+        <section id="detalhes-falhas" class="hidden">
+            <h2>Violações Encontradas</h2>
+            <table id="tabela-falhas">
+                <thead>
+                    <tr>
+                        <th>Arquivo</th>
+                        <th>Função</th>
+                        <th>Linha</th>
+                        <th>Mensagem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <section id="codigo-fonte-container" class="hidden">
+            <h2>Código Fonte Analisado</h2>
+            <div class="code-view">
+                <pre><code id="codigo-fonte"></code></pre>
+            </div>
+        </section>
+
+        <section id="traco-execucao-container" class="hidden">
+            <h2>Traço de Execução (Contra-Exemplo)</h2>
+            <div class="trace-view">
+                <pre><code id="traco-execucao"></code></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
