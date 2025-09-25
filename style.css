@@ -25,20 +25,21 @@ th { background-color: #e9ecef; }
 tbody tr:nth-child(even) { background-color: #f8f9fa; }
 .hidden { display: none; }
 
-/* --- Estilos para Código e Traço --- */
-.code-view, .trace-view {
+/* --- Estilos para Código, Traço e Valores --- */
+.code-view, .trace-view, .values-view {
     background-color: #2b2b2b;
     color: #f8f8f2;
     padding: 15px;
     border-radius: 8px;
     overflow-x: auto;
     font-size: 0.9em;
+    margin-bottom: 20px;
 }
 pre { margin: 0; }
 .line {
     display: block;
     padding: 2px 5px;
-    margin: 0 -5px;
+    margin: 0 -15px;
 }
 .line-number {
     display: inline-block;
@@ -60,10 +61,6 @@ pre { margin: 0; }
     white-space: pre-wrap;
     word-break: break-all;
 }
-.trace-step.violation {
-    color: #ff5555;
-    font-weight: bold;
-}
-.trace-step.assignment {
-    color: #8be9fd; /* Ciano */
-}
+.trace-step.violation { color: #ff5555; font-weight: bold; }
+.trace-step.assignment { color: #8be9fd; }
+.values-view code { color: #f1fa8c; }
