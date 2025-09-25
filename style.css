@@ -1,69 +1,41 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f7f9;
-    color: #333;
-    margin: 0;
-    padding: 20px;
+/* Container para cada linha de código */
+.code-view .code-line-container {
+    display: flex; /* Permite que o número da linha e o conteúdo fiquem lado a lado */
+    white-space: pre; /* Mantém a formatação do <pre> */
+    font-size: 0.9rem;
+    padding-left: 5px; /* Pequeno recuo */
 }
-header, section {
-    margin-bottom: 30px;
-}
-header { text-align: center; }
 
-/* --- Estilos do Dashboard --- */
-.status-box { padding: 20px; border-radius: 8px; text-align: center; color: white; }
-.status-box.success { background-color: #28a745; }
-.status-box.failure { background-color: #dc3545; }
-.metricas-container { display: flex; justify-content: space-around; gap: 20px; }
-.kpi-card { background-color: white; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-grow: 1; }
-.kpi-card h3 { margin-top: 0; }
-.kpi-card p { font-size: 2.5em; font-weight: bold; margin: 0; }
-.kpi-card.failure p { color: #dc3545; }
-table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
-th { background-color: #e9ecef; }
-tbody tr:nth-child(even) { background-color: #f8f9fa; }
-.hidden { display: none; }
-
-/* --- Estilos para Código e Traço --- */
-.code-view, .trace-view {
-    background-color: #2b2b2b;
-    color: #f8f8f2;
-    padding: 15px;
-    border-radius: 8px;
-    overflow-x: auto;
-    font-size: 0.9em;
-}
-pre { margin: 0; }
-.line {
-    display: block;
-    padding: 2px 5px;
-    margin: 0 -5px;
-}
-.line-number {
-    display: inline-block;
-    width: 35px;
-    color: #888;
+/* Coluna dos números de linha */
+.code-view .line-number {
+    flex-shrink: 0; /* Impede que o número da linha diminua */
+    width: 30px; /* Largura fixa para alinhamento */
     text-align: right;
-    margin-right: 15px;
-    user-select: none;
+    padding-right: 10px;
+    user-select: none; /* Não permite selecionar o número da linha */
 }
-.line.violation {
-    background-color: rgba(220, 53, 69, 0.4); /* Vermelho translúcido */
-    border-left: 3px solid #dc3545;
+
+/* Coluna do conteúdo do código */
+.code-view .line-content {
+    flex-grow: 1; /* Permite que o código use o espaço restante */
 }
-.line.covered {
-    background-color: rgba(40, 167, 69, 0.15); /* Verde translúcido */
+
+/* Destaque da Linha Violada */
+.code-view .violation-line {
+    /* O Bootstrap já fornece bg-danger-subtle */
+    border-left: 5px solid #dc3545; /* Linha vertical vermelha forte para destaque */
 }
-.trace-step {
-    padding: 3px 0;
-    white-space: pre-wrap;
-    word-break: break-all;
+
+/* Estilização do Traço de Execução */
+.trace-view {
+    font-size: 0.95rem;
+    line-height: 1.5;
 }
-.trace-step.violation {
-    color: #ff5555;
+
+/* Passo de violação no traço (usa classes de texto e fundo do Bootstrap) */
+.trace-view .step-violation {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
     font-weight: bold;
-}
-.trace-step.assignment {
-    color: #8be9fd; /* Ciano */
 }
