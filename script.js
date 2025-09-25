@@ -1,138 +1,148 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Dashboard iniciado. Tentando carregar results.json...");
-    
-    fetch('report.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            console.log("Arquivo results.json encontrado. Processando...");
-            return response.json();
-        })
+    // Altere para o nome do seu arquivo JSON se for diferente
+    const DATA_FILE = 'report.json'; 
+
+    fetch(DATA_FILE)
+        .then(response => response.ok ? response.json() : Promise.reject(response.statusText))
         .then(data => {
-            console.log("Dados JSON processados com sucesso:", data);
-            if (data && data.length > 0) {
-                processarResultados(data[0]); // Processa o primeiro (e único) objeto no array
-            } else {
-                throw new Error("O arquivo JSON está vazio ou em formato inesperado.");
-            }
+            if (!data || data.length === 0) throw new Error("JSON está vazio ou inválido.");
+            renderDashboard(data[0]);
         })
-        .catch(error => {
-            console.error('Falha crítica ao carregar ou processar o dashboard:', error);
-            const statusTexto = document.getElementById('status-texto');
-            statusTexto.textContent = 'Erro ao carregar dados. Verifique o console (F12).';
-            document.getElementById('status-geral').className = 'status-box failure';
-        });
+        .catch(handleError);
 });
 
-function processarResultados(resultado) {
-    console.log("Iniciando a renderização do dashboard com os resultados.");
-
+function renderDashboard(resultado) {
     if (!resultado || !resultado.steps) {
-        console.error("Estrutura do JSON inválida: a chave 'steps' não foi encontrada.");
-        return;
+        throw new Error("Estrutura do JSON inválida: a chave 'steps' não foi encontrada.");
     }
 
+    // Extração de dados
     const status = resultado.status || 'unknown';
     const steps = resultado.steps;
     const violations = steps.filter(step => step.type === 'violation');
+    const initialValues = resultado.initial_values || {};
 
-    // 1. Atualiza Status Geral e Métricas
-    document.getElementById('total-steps').textContent = steps.length;
-    document.getElementById('failure-checks').textContent = violations.length;
+    // Renderização dos componentes
+    renderStatusAndMetrics(status, steps.length, violations.length);
+    if (violations.length > 0) {
+        renderViolationsTable(violations);
+        document.getElementById('detalhes-falhas').classList.remove('hidden');
+    }
+    if (Object.keys(initialValues).length > 0) {
+        renderInitialValues(initialValues);
+        document.getElementById('valores-iniciais-container').classList.remove('hidden');
+    }
+    renderSourceFiles(resultado.source_files, resultado.coverage?.files);
+    renderTrace(steps);
+    
+    console.log("Renderização do dashboard concluída.");
+}
 
+function renderStatusAndMetrics(status, totalSteps, violationCount) {
     const statusBox = document.getElementById('status-geral');
     const statusTexto = document.getElementById('status-texto');
-    if (status === 'violation' && violations.length > 0) {
+    if (status === 'violation') {
         statusBox.className = 'status-box failure';
-        statusTexto.textContent = 'VERIFICATION FAILED (VIOLATION)';
+        statusTexto.textContent = `VERIFICATION FAILED (${violationCount} VIOLATION(S))`;
     } else {
         statusBox.className = 'status-box success';
         statusTexto.textContent = 'VERIFICATION SUCCESSFUL';
     }
-
-    // 2. Preenche a Tabela de Violações
-    if (violations.length > 0) {
-        const tabelaBody = document.querySelector('#tabela-falhas tbody');
-        tabelaBody.innerHTML = '';
-        violations.forEach(v => {
-            const row = document.createElement('tr');
-            // A chave 'message' pode estar dentro de 'assertion' em algumas versões
-            const message = v.message || v.assertion?.comment || 'Sem detalhes';
-            row.innerHTML = `
-                <td>${v.file || 'N/A'}</td>
-                <td>${v.function || 'N/A'}</td>
-                <td>${v.line || 'N/A'}</td>
-                <td>${message}</td>
-            `;
-            tabelaBody.appendChild(row);
-        });
-        document.getElementById('detalhes-falhas').classList.remove('hidden');
-    }
-
-    // 3. Renderiza o Código Fonte com Destaques
-    renderizarCodigoFonte(resultado);
-
-    // 4. Renderiza o Traço de Execução
-    renderizarTraco(steps);
-    console.log("Renderização do dashboard concluída.");
+    document.getElementById('total-steps').textContent = totalSteps;
+    document.getElementById('failure-checks').textContent = violationCount;
 }
 
-function renderizarCodigoFonte(resultado) {
-    if (!resultado.source_files || !resultado.coverage || !resultado.coverage.files) {
-        console.warn("Dados de código-fonte ou cobertura não encontrados no JSON.");
-        return;
-    }
-    
-    const filename = Object.keys(resultado.source_files)[0];
-    if (!filename) {
-        console.warn("Nenhum arquivo de código-fonte encontrado.");
-        return;
-    }
-
-    const sourceLines = resultado.source_files[filename];
-    const coverage = resultado.coverage.files[filename]?.covered_lines || {};
-    const codeContainer = document.getElementById('codigo-fonte');
-    
-    let html = '';
-    sourceLines.forEach((lineContent, index) => {
-        const lineNumber = index + 1;
-        const coverageInfo = coverage[lineNumber];
-        
-        let lineClass = 'line';
-        if (coverageInfo) {
-            lineClass += coverageInfo.type === 'violation' ? ' violation' : ' covered';
-        }
-        const safeLineContent = lineContent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        html += `<span class="${lineClass}"><span class="line-number">${lineNumber}</span>${safeLineContent}</span>`;
+function renderViolationsTable(violations) {
+    const tabelaBody = document.querySelector('#tabela-falhas tbody');
+    tabelaBody.innerHTML = '';
+    violations.forEach(v => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${normalizePath(v.file)}</td>
+            <td>${v.function || 'N/A'}</td>
+            <td>${v.line || 'N/A'}</td>
+            <td>${v.message || v.assertion?.comment || 'Sem detalhes'}</td>
+        `;
+        tabelaBody.appendChild(row);
     });
+}
 
-    codeContainer.innerHTML = html;
+function renderInitialValues(values) {
+    const container = document.getElementById('valores-iniciais');
+    let textContent = 'Valores que causaram a falha:\n\n';
+    for (const varName in values) {
+        textContent += `${varName} = ${values[varName].value}\n`;
+    }
+    container.textContent = textContent;
+}
+
+function renderSourceFiles(sourceFiles, coverageFiles) {
+    const wrapper = document.getElementById('codigo-fonte-wrapper');
+    wrapper.innerHTML = ''; // Limpa o wrapper
+    if (!sourceFiles) return;
+
+    for (const fullPath in sourceFiles) {
+        const shortPath = normalizePath(fullPath);
+        const codeContainer = document.createElement('code');
+        
+        let html = `<h3>${shortPath}</h3>`;
+        const codeView = document.createElement('div');
+        codeView.className = 'code-view';
+        
+        const pre = document.createElement('pre');
+        
+        const sourceLines = sourceFiles[fullPath];
+        const coverage = coverageFiles?.[fullPath]?.covered_lines || {};
+
+        let linesHtml = '';
+        sourceLines.forEach((lineContent, index) => {
+            const lineNumber = index + 1;
+            const coverageInfo = coverage[lineNumber];
+            let lineClass = 'line';
+            if (coverageInfo) {
+                lineClass += ` ${coverageInfo.type}`; // 'violation' ou 'execution'
+            }
+            const safeLineContent = lineContent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            linesHtml += `<span class="${lineClass}"><span class="line-number">${lineNumber}</span>${safeLineContent}</span>`;
+        });
+        
+        pre.innerHTML = linesHtml;
+        codeView.appendChild(pre);
+        wrapper.appendChild(codeView);
+    }
     document.getElementById('codigo-fonte-container').classList.remove('hidden');
 }
 
-function renderizarTraco(steps) {
+function renderTrace(steps) {
     const traceContainer = document.getElementById('traco-execucao');
     let html = '';
     steps.forEach(step => {
         let stepClass = 'trace-step';
-        let stepDetails = `[Passo ${step.step_number}] ${step.type.toUpperCase()} @ ${step.file}:${step.line}`;
+        let stepDetails = `[Passo ${step.step_number}] ${step.type.toUpperCase()} @ ${normalizePath(step.file)}:${step.line}`;
         
-        if(step.type === 'violation') {
+        if (step.type === 'violation') {
             stepClass += ' violation';
-            const message = step.message || step.assertion?.comment || '';
-            stepDetails += ` -> ${message}`;
+            stepDetails += ` -> ${step.message || ''}`;
         }
-        if(step.type === 'assignment') {
+        if (step.type === 'assignment') {
             stepClass += ' assignment';
             const rhs = typeof step.assignment.rhs === 'object' ? JSON.stringify(step.assignment.rhs) : step.assignment.rhs;
             stepDetails += ` -> ${step.assignment.lhs} = ${rhs}`;
         }
-
         html += `<span class="${stepClass}">${stepDetails}</span>\n`;
     });
-
     traceContainer.innerHTML = html;
     document.getElementById('traco-execucao-container').classList.remove('hidden');
+}
 
+function handleError(error) {
+    console.error('Falha crítica no dashboard:', error);
+    const statusTexto = document.getElementById('status-texto');
+    statusTexto.textContent = 'Erro ao carregar dados. Verifique o console (F12).';
+    document.getElementById('status-geral').className = 'status-box failure';
+}
+
+function normalizePath(fullPath) {
+    if (!fullPath) return 'N/A';
+    return fullPath.split('/').slice(-2).join('/'); // Pega os dois últimos segmentos do caminho
 }

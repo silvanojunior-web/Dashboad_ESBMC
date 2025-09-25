@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Avançado - ESBMC</title>
+    <title>Dashboard Completo - ESBMC</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>Dashboad_ESBMC_SSE_UFAM_2_2025</h1>
+        <h1>Dashboad_ESBMC_SSE_UFAM_2025</h1>
         <p>Resultado Detalhado da Última Análise</p>
     </header>
 
@@ -42,12 +42,17 @@
                 <tbody></tbody>
             </table>
         </section>
+        
+        <section id="valores-iniciais-container" class="hidden">
+            <h2>Valores Iniciais (Contra-Exemplo)</h2>
+            <div class="values-view">
+                <pre><code id="valores-iniciais"></code></pre>
+            </div>
+        </section>
 
         <section id="codigo-fonte-container" class="hidden">
             <h2>Código Fonte Analisado</h2>
-            <div class="code-view">
-                <pre><code id="codigo-fonte"></code></pre>
-            </div>
+            <div id="codigo-fonte-wrapper"></div>
         </section>
 
         <section id="traco-execucao-container" class="hidden">
