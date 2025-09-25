@@ -1,0 +1,197 @@
+[
+  {
+    "coverage": {
+      "files": {
+        "/home/silva/Projetos/02_projeto/lib/lib.h": {
+          "coverage_stats": {
+            "covered_lines": 0,
+            "total_hits": 0
+          },
+          "covered_lines": {}
+        },
+        "lib/lib.c": {
+          "coverage_stats": {
+            "covered_lines": 1,
+            "total_hits": 2
+          },
+          "covered_lines": {
+            "16": {
+              "covered": true,
+              "hits": 2,
+              "type": "violation"
+            }
+          }
+        },
+        "main.c": {
+          "coverage_stats": {
+            "covered_lines": 4,
+            "total_hits": 5
+          },
+          "covered_lines": {
+            "10": {
+              "covered": true,
+              "hits": 2,
+              "type": "violation"
+            },
+            "13": {
+              "covered": true,
+              "hits": 1,
+              "type": "execution"
+            },
+            "6": {
+              "covered": true,
+              "hits": 1,
+              "type": "execution"
+            },
+            "7": {
+              "covered": true,
+              "hits": 1,
+              "type": "execution"
+            }
+          }
+        }
+      }
+    },
+    "initial_values": {
+      "*res": {
+        "name": "*res",
+        "type": "signed",
+        "value": "-4472093121675788288"
+      },
+      "a": {
+        "name": "a",
+        "type": "signed",
+        "value": "6192430795937021952"
+      },
+      "b": {
+        "name": "b",
+        "type": "signed",
+        "value": "17626688389123"
+      }
+    },
+    "source_files": {
+      "/home/silva/Projetos/02_projeto/lib/lib.h": [
+        " #include <stdint.h> ",
+        "_Bool mul(const int64_t a, const int64_t b, int64_t *res);"
+      ],
+      "lib/lib.c": [
+        "  #include <stdint.h> ",
+        " _Bool mul(const int64_t a, const int64_t b, int64_t *res);",
+        " #include \"lib.h\"",
+        " _Bool mul(int64_t a, int64_t b, int64_t *res) {",
+        "   // Trivial cases",
+        "   if((a == 0) || (b == 0)) {",
+        "     *res = 0;",
+        "     return 1;",
+        "   } else if(a == 1) {",
+        "     *res = b;",
+        "     return 1;",
+        "   } else if(b == 1) {",
+        "     *res = a;",
+        "     return 1;",
+        "   }",
+        "   *res = a * b; // there exists an overflow",
+        "   return 1;",
+        " }"
+      ],
+      "main.c": [
+        " #include <stdint.h> ",
+        " _Bool mul(const int64_t a, const int64_t b, int64_t *res); ",
+        " #include \"lib.h\"",
+        " // Running with esbmc  --overflow-check main.c lib.c",
+        " int main() {",
+        "   int64_t a;",
+        "  int64_t b;",
+        "   int64_t r;",
+        "   if (mul(a, b, &r)) {",
+        "     __ESBMC_assert(r == a * b, \"Expected result from multiplication\");",
+        "   }",
+        "   return 0;",
+        " }"
+      ]
+    },
+    "status": "violation",
+    "steps": [
+      {
+        "assignment": {
+          "lhs": "a",
+          "lhs_type": "signed",
+          "rhs": "6192430795937021952",
+          "rhs_type": "signed"
+        },
+        "file": "main.c",
+        "function": "main",
+        "line": "6",
+        "step_number": 0,
+        "type": "assignment"
+      },
+      {
+        "assignment": {
+          "lhs": "b",
+          "lhs_type": "signed",
+          "rhs": "17626688389123",
+          "rhs_type": "signed"
+        },
+        "file": "main.c",
+        "function": "main",
+        "line": "7",
+        "step_number": 1,
+        "type": "assignment"
+      },
+      {
+        "assertion": {
+          "comment": "arithmetic overflow on mul",
+          "guard": "!overflow(\"*\", a, b)",
+          "violated": true
+        },
+        "file": "lib/lib.c",
+        "function": "mul",
+        "line": "16",
+        "message": "arithmetic overflow on mul",
+        "step_number": 2,
+        "type": "violation"
+      },
+      {
+        "assignment": {
+          "lhs": "*res",
+          "lhs_type": "signed",
+          "rhs": "-4472093121675788288",
+          "rhs_type": "signed"
+        },
+        "file": "lib/lib.c",
+        "function": "mul",
+        "line": "16",
+        "step_number": 3,
+        "type": "assignment"
+      },
+      {
+        "assertion": {
+          "comment": "arithmetic overflow on mul",
+          "guard": "!overflow(\"*\", a, b)",
+          "violated": true
+        },
+        "file": "main.c",
+        "function": "main",
+        "line": "10",
+        "message": "arithmetic overflow on mul",
+        "step_number": 4,
+        "type": "violation"
+      },
+      {
+        "file": "main.c",
+        "function": "main",
+        "line": "10",
+        "step_number": 5,
+        "type": "assert"
+      },
+      {
+        "file": "main.c",
+        "function": "main",
+        "line": "13",
+        "message": "Assumption restriction",
+        "step_number": 6,
+        "type": "assume"
+      }
+    ]
+  }
+]
