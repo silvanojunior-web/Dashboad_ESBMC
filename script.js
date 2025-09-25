@@ -1,18 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Dashboard iniciado. Tentando carregar results.json...");
+    // Altere para 'report.json' se você renomeou o arquivo
+    const DATA_FILE = 'report.json'; 
+
+    console.log(`Dashboard iniciado. Tentando carregar ${DATA_FILE}...`);
     
-    fetch('report.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            console.log("Arquivo results.json encontrado. Processando...");
-            return response.json();
-        })
+    fetch(DATA_FILE)
+        .then(response => response.ok ? response.json() : Promise.reject(response.statusText))
         .then(data => {
             console.log("Dados JSON processados com sucesso:", data);
             if (data && data.length > 0) {
-                processarResultados(data[0]); // Processa o primeiro (e único) objeto no array
+                const normalizedData = parseEsbmcResult(data[0]);
+                renderDashboard(normalizedData);
             } else {
                 throw new Error("O arquivo JSON está vazio ou em formato inesperado.");
             }
@@ -25,114 +23,171 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 });
 
-function processarResultados(resultado) {
-    console.log("Iniciando a renderização do dashboard com os resultados.");
-
-    if (!resultado || !resultado.steps) {
-        console.error("Estrutura do JSON inválida: a chave 'steps' não foi encontrada.");
-        return;
+/**
+ * Converte o JSON bruto do ESBMC para o nosso formato de dados normalizado.
+ * @param {object} rawData O objeto de resultado bruto do ESBMC.
+ * @returns {object} Um objeto com os dados normalizados para o dashboard.
+ */
+function parseEsbmcResult(rawData) {
+    console.log("Parser do ESBMC em ação...");
+    
+    if (!rawData || !rawData.steps) {
+        throw new Error("Estrutura do JSON inválida: 'steps' não encontrado.");
     }
 
-    const status = resultado.status || 'unknown';
-    const steps = resultado.steps;
-    const violations = steps.filter(step => step.type === 'violation');
+    const status = (rawData.status === 'violation') ? 'FAILURE' : 'SUCCESS';
+    const steps = rawData.steps;
+    const violationsRaw = steps.filter(step => step.type === 'violation');
 
-    // 1. Atualiza Status Geral e Métricas
-    document.getElementById('total-steps').textContent = steps.length;
-    document.getElementById('failure-checks').textContent = violations.length;
+    const violations = violationsRaw.map(v => ({
+        file: normalizePath(v.file || 'N/A'),
+        line: v.line || 'N/A',
+        func: v.function || 'N/A',
+        msg: v.message || v.assertion?.comment || 'Sem detalhes'
+    }));
 
+    // NOVA LÓGICA PARA MÚLTIPLOS ARQUIVOS
+    const sources = [];
+    const coverage = {};
+
+    if (rawData.source_files) {
+        for (const fullPath in rawData.source_files) {
+            const shortPath = normalizePath(fullPath);
+            sources.push({
+                filename: shortPath,
+                lines: rawData.source_files[fullPath]
+            });
+
+            if (rawData.coverage?.files[fullPath]?.covered_lines) {
+                const coveredLinesRaw = rawData.coverage.files[fullPath].covered_lines;
+                coverage[shortPath] = {};
+                for (const lineNumber in coveredLinesRaw) {
+                    coverage[shortPath][lineNumber] = coveredLinesRaw[lineNumber].type;
+                }
+            }
+        }
+    }
+    
+    const normalizedData = {
+        status: status,
+        metrics: {
+            total: steps.length,
+            failed: violations.length
+        },
+        violations: violations,
+        sources: sources,
+        coverage: coverage,
+        trace: steps 
+    };
+
+    console.log("Dados Normalizados:", normalizedData);
+    return normalizedData;
+}
+
+/**
+ * Orquestra a renderização de todas as partes do dashboard.
+ * @param {object} data O objeto de dados já normalizado pelo parser.
+ */
+function renderDashboard(data) {
+    console.log("Iniciando a renderização do dashboard com dados normalizados.");
+
+    // Renderiza Status, Métricas e Tabela de Violações
     const statusBox = document.getElementById('status-geral');
     const statusTexto = document.getElementById('status-texto');
-    if (status === 'violation' && violations.length > 0) {
+    if (data.status === 'FAILURE') {
         statusBox.className = 'status-box failure';
-        statusTexto.textContent = 'VERIFICATION FAILED (VIOLATION)';
+        statusTexto.textContent = `VERIFICATION FAILED (${data.metrics.failed} VIOLATION(S))`;
     } else {
         statusBox.className = 'status-box success';
         statusTexto.textContent = 'VERIFICATION SUCCESSFUL';
     }
+    document.getElementById('total-steps').textContent = data.metrics.total;
+    document.getElementById('failure-checks').textContent = data.metrics.failed;
 
-    // 2. Preenche a Tabela de Violações
-    if (violations.length > 0) {
+    if (data.violations.length > 0) {
         const tabelaBody = document.querySelector('#tabela-falhas tbody');
         tabelaBody.innerHTML = '';
-        violations.forEach(v => {
+        data.violations.forEach(v => {
             const row = document.createElement('tr');
-            // A chave 'message' pode estar dentro de 'assertion' em algumas versões
-            const message = v.message || v.assertion?.comment || 'Sem detalhes';
-            row.innerHTML = `
-                <td>${v.file || 'N/A'}</td>
-                <td>${v.function || 'N/A'}</td>
-                <td>${v.line || 'N/A'}</td>
-                <td>${message}</td>
-            `;
+            row.innerHTML = `<td>${v.file}</td><td>${v.func}</td><td>${v.line}</td><td>${v.msg}</td>`;
             tabelaBody.appendChild(row);
         });
         document.getElementById('detalhes-falhas').classList.remove('hidden');
     }
 
-    // 3. Renderiza o Código Fonte com Destaques
-    renderizarCodigoFonte(resultado);
-
-    // 4. Renderiza o Traço de Execução
-    renderizarTraco(steps);
+    // Renderiza Código-Fonte e Traço
+    renderSourceCode(data.sources, data.coverage);
+    renderTrace(data.trace);
     console.log("Renderização do dashboard concluída.");
 }
 
-function renderizarCodigoFonte(resultado) {
-    if (!resultado.source_files || !resultado.coverage || !resultado.coverage.files) {
-        console.warn("Dados de código-fonte ou cobertura não encontrados no JSON.");
-        return;
-    }
-    
-    const filename = Object.keys(resultado.source_files)[0];
-    if (!filename) {
-        console.warn("Nenhum arquivo de código-fonte encontrado.");
-        return;
-    }
-
-    const sourceLines = resultado.source_files[filename];
-    const coverage = resultado.coverage.files[filename]?.covered_lines || {};
+/**
+ * Renderiza o código de múltiplos arquivos, um após o outro.
+ * @param {Array} sources Array de objetos contendo nome e linhas do arquivo.
+ * @param {object} coverage Objeto de cobertura mapeado por nome de arquivo.
+ */
+function renderSourceCode(sources, coverage) {
     const codeContainer = document.getElementById('codigo-fonte');
-    
-    let html = '';
-    sourceLines.forEach((lineContent, index) => {
-        const lineNumber = index + 1;
-        const coverageInfo = coverage[lineNumber];
-        
-        let lineClass = 'line';
-        if (coverageInfo) {
-            lineClass += coverageInfo.type === 'violation' ? ' violation' : ' covered';
-        }
-        const safeLineContent = lineContent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        html += `<span class="${lineClass}"><span class="line-number">${lineNumber}</span>${safeLineContent}</span>`;
-    });
+    codeContainer.innerHTML = ''; // Limpa o container
 
-    codeContainer.innerHTML = html;
+    if (sources.length === 0) {
+        console.warn("Nenhum arquivo de código-fonte encontrado nos dados normalizados.");
+        return;
+    }
+
+    sources.forEach(source => {
+        const fileCoverage = coverage[source.filename] || {};
+        let html = `<h3>${source.filename}</h3>`;
+        source.lines.forEach((lineContent, index) => {
+            const lineNumber = index + 1;
+            const coverageType = fileCoverage[lineNumber];
+            
+            let lineClass = 'line';
+            if (coverageType) {
+                lineClass += ` ${coverageType}`; // 'violation' ou 'covered'
+            }
+            const safeLineContent = lineContent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            html += `<span class="${lineClass}"><span class="line-number">${lineNumber}</span>${safeLineContent}</span>`;
+        });
+        codeContainer.innerHTML += html;
+    });
+    
     document.getElementById('codigo-fonte-container').classList.remove('hidden');
 }
 
-function renderizarTraco(steps) {
+/**
+ * Renderiza o traço de execução completo.
+ * @param {Array} steps Array de passos brutos do ESBMC.
+ */
+function renderTrace(steps) {
     const traceContainer = document.getElementById('traco-execucao');
     let html = '';
     steps.forEach(step => {
         let stepClass = 'trace-step';
-        let stepDetails = `[Passo ${step.step_number}] ${step.type.toUpperCase()} @ ${step.file}:${step.line}`;
+        let stepDetails = `[Passo ${step.step_number}] ${step.type.toUpperCase()} @ ${normalizePath(step.file)}:${step.line}`;
         
         if(step.type === 'violation') {
             stepClass += ' violation';
-            const message = step.message || step.assertion?.comment || '';
-            stepDetails += ` -> ${message}`;
+            stepDetails += ` -> ${step.message || step.assertion?.comment || ''}`;
         }
         if(step.type === 'assignment') {
             stepClass += ' assignment';
             const rhs = typeof step.assignment.rhs === 'object' ? JSON.stringify(step.assignment.rhs) : step.assignment.rhs;
             stepDetails += ` -> ${step.assignment.lhs} = ${rhs}`;
         }
-
         html += `<span class="${stepClass}">${stepDetails}</span>\n`;
     });
-
     traceContainer.innerHTML = html;
     document.getElementById('traco-execucao-container').classList.remove('hidden');
+}
 
+/**
+ * Função utilitária para encurtar caminhos de arquivo longos.
+ * @param {string} fullPath O caminho completo do arquivo.
+ * @returns {string} O caminho simplificado.
+ */
+function normalizePath(fullPath) {
+    if (!fullPath) return 'N/A';
+    // Remove o prefixo comum de caminhos do Linux para deixar mais limpo
+    return fullPath.replace(/^\/home\/silva\/Projetos\/02_projeto\//, '');
 }
