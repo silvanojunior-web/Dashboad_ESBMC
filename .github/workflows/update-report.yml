@@ -1,0 +1,47 @@
+# Nome do workflow
+name: Atualizar Dados do Dashboard
+
+# Gatilho: Como o workflow será iniciado
+on:
+  # Opção 1: Rodar em um horário fixo (ex: a cada 6 horas)
+  schedule:
+    - cron: '0 */6 * * *'
+  
+  # Opção 2: Permitir que seja iniciado manualmente pela interface do GitHub
+  workflow_dispatch:
+
+# Permissão para que a Action possa fazer 'push' no seu repositório
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Baixa o código do seu repositório
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # 2. AQUI VEM A SUA LÓGICA
+      #    Este passo precisa ser adaptado por você.
+      #    É aqui que o novo report.json é gerado.
+      #    Pode ser um script Python, um comando curl, etc.
+      #    Exemplo:
+      - name: Gerar novo report.json
+        run: |
+          echo "Executando o script que busca os dados..."
+          # Substitua o comando abaixo pelo seu comando real
+          # Exemplo: python ./scripts/gerar_relatorio.py
+          # Exemplo: curl -o report.json https://api.exemplo.com/dados
+          echo '{ "nova_data": "dados atualizados" }' > report.json
+
+      # 3. Faz o commit e push do novo report.json para a branch 'main'
+      - name: Commit dos arquivos
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: Atualiza report.json com novos dados"
+          branch: main
+          # Adicione o usuário e email do bot que fará o commit
+          commit_user_name: GitHub Actions Bot
+          commit_user_email: actions@github.com
+          commit_author: GitHub Actions Bot <actions@github.com>
