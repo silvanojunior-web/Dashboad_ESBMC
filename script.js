@@ -1,20 +1,91 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Altere para o nome do seu arquivo JSON se for diferente
-    const DATA_FILE = 'report.json'; 
+// Variável global para armazenar os dados de todos os relatórios carregados
+let todosOsResultados = [];
 
-    fetch(DATA_FILE)
-        .then(response => response.ok ? response.json() : Promise.reject(response.statusText))
-        .then(data => {
-            if (!data || data.length === 0) throw new Error("JSON está vazio ou inválido.");
-            renderDashboard(data[0]);
-        })
-        .catch(handleError);
+document.addEventListener('DOMContentLoaded', function() {
+    iniciarDashboard();
 });
+
+/**
+ * Função principal que orquestra o carregamento do dashboard.
+ * 1. Busca o arquivo de índice.
+ * 2. Busca todos os relatórios listados no índice.
+ * 3. Cria o seletor (dropdown) para os relatórios.
+ * 4. Renderiza o primeiro relatório da lista.
+ */
+async function iniciarDashboard() {
+    // URL do seu arquivo de índice no repositório de dados.
+    // SUBSTITUA COM SEUS DADOS REAIS!
+    const URL_INDICE = 'https://raw.githubusercontent.com/SEU-USUARIO/SEU-REPOSITORIO-DE-DADOS/main/index.json';
+
+    try {
+        const responseIndex = await fetch(URL_INDICE);
+        if (!responseIndex.ok) throw new Error(`Não foi possível carregar o arquivo de índice: ${responseIndex.statusText}`);
+        
+        const indice = await responseIndex.json();
+        const arquivosParaBuscar = indice.arquivos_participantes; // Use a chave correta do seu index.json
+
+        // Busca todos os arquivos de relatório em paralelo
+        const promessas = arquivosParaBuscar.map(url => fetch(url).then(res => res.json()));
+        const resultadosCarregados = await Promise.all(promessas);
+
+        // Armazena os resultados. O seu código original esperava data[0],
+        // então vamos garantir que cada resultado seja o primeiro elemento do seu array.
+        todosOsResultados = resultadosCarregados.map((data, index) => ({
+            // Usamos o nome do arquivo como um título padrão
+            titulo: new URL(arquivosParaBuscar[index]).pathname.split('/').pop(),
+            // Seu código original usava data[0], então pegamos o primeiro item de cada arquivo carregado
+            dados: data[0] 
+        }));
+
+        if (todosOsResultados.length === 0) throw new Error("Nenhum relatório foi carregado.");
+
+        // Cria o menu dropdown
+        criarSeletorDeRelatorios();
+        
+        // Renderiza o primeiro relatório por padrão
+        renderDashboard(todosOsResultados[0].dados);
+
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+/**
+ * Cria e configura o menu dropdown (select) para escolher entre os relatórios carregados.
+ */
+function criarSeletorDeRelatorios() {
+    const seletor = document.getElementById('seletor-relatorios');
+    seletor.innerHTML = ''; // Limpa opções antigas
+
+    todosOsResultados.forEach((resultado, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = resultado.titulo; // Ex: 'joao.json'
+        seletor.appendChild(option);
+    });
+
+    // Adiciona um evento que renderiza o dashboard selecionado quando o usuário muda a opção
+    seletor.addEventListener('change', (event) => {
+        const indiceSelecionado = event.target.value;
+        const resultadoSelecionado = todosOsResultados[indiceSelecionado];
+        renderDashboard(resultadoSelecionado.dados);
+    });
+}
+
+
+// =========================================================================
+// SUAS FUNÇÕES ORIGINAIS (PRATICAMENTE SEM ALTERAÇÕES)
+// =========================================================================
 
 function renderDashboard(resultado) {
     if (!resultado || !resultado.steps) {
+        // Limpa o dashboard antigo antes de mostrar o erro para não confundir o usuário
+        limparDashboard();
         throw new Error("Estrutura do JSON inválida: a chave 'steps' não foi encontrada.");
     }
+    
+    // Limpa visualizações anteriores antes de renderizar a nova
+    limparDashboard();
 
     // Extração de dados
     const status = resultado.status || 'unknown';
@@ -35,7 +106,7 @@ function renderDashboard(resultado) {
     renderSourceFiles(resultado.source_files, resultado.coverage?.files);
     renderTrace(steps);
     
-    console.log("Renderização do dashboard concluída.");
+    console.log(`Renderização do dashboard para o resultado selecionado concluída.`);
 }
 
 function renderStatusAndMetrics(status, totalSteps, violationCount) {
@@ -83,9 +154,14 @@ function renderSourceFiles(sourceFiles, coverageFiles) {
 
     for (const fullPath in sourceFiles) {
         const shortPath = normalizePath(fullPath);
-        const codeContainer = document.createElement('code');
         
-        let html = `<h3>${shortPath}</h3>`;
+        const fileContainer = document.createElement('div');
+        fileContainer.className = 'file-container';
+        
+        const header = document.createElement('h3');
+        header.textContent = shortPath;
+        fileContainer.appendChild(header);
+
         const codeView = document.createElement('div');
         codeView.className = 'code-view';
         
@@ -108,7 +184,8 @@ function renderSourceFiles(sourceFiles, coverageFiles) {
         
         pre.innerHTML = linesHtml;
         codeView.appendChild(pre);
-        wrapper.appendChild(codeView);
+        fileContainer.appendChild(codeView);
+        wrapper.appendChild(fileContainer);
     }
     document.getElementById('codigo-fonte-container').classList.remove('hidden');
 }
@@ -140,9 +217,26 @@ function handleError(error) {
     const statusTexto = document.getElementById('status-texto');
     statusTexto.textContent = 'Erro ao carregar dados. Verifique o console (F12).';
     document.getElementById('status-geral').className = 'status-box failure';
+    // Esconde todos os containers de detalhes em caso de erro
+    limparDashboard();
 }
 
 function normalizePath(fullPath) {
     if (!fullPath) return 'N/A';
     return fullPath.split('/').slice(-2).join('/'); // Pega os dois últimos segmentos do caminho
+}
+
+/**
+ * Limpa todas as seções de detalhes do dashboard para preparar para uma nova renderização
+ * ou para limpar a tela em caso de erro.
+ */
+function limparDashboard() {
+    document.getElementById('detalhes-falhas').classList.add('hidden');
+    document.getElementById('valores-iniciais-container').classList.add('hidden');
+    document.getElementById('codigo-fonte-container').classList.add('hidden');
+    document.getElementById('traco-execucao-container').classList.add('hidden');
+    document.querySelector('#tabela-falhas tbody').innerHTML = '';
+    document.getElementById('valores-iniciais').textContent = '';
+    document.getElementById('codigo-fonte-wrapper').innerHTML = '';
+    document.getElementById('traco-execucao').innerHTML = '';
 }
