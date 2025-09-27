@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Altere para o nome do seu arquivo JSON se for diferente
-    const DATA_FILE = 'report.json'; 
+    const DATA_FILE = 'https://raw.githubusercontent.com/silvanojunior-web/dashboard-dados/main/index.json'; 
 
     fetch(DATA_FILE)
         .then(response => response.ok ? response.json() : Promise.reject(response.statusText))
@@ -146,4 +146,5 @@ function normalizePath(fullPath) {
     if (!fullPath) return 'N/A';
     return fullPath.split('/').slice(-2).join('/'); // Pega os dois últimos segmentos do caminho
 }
+
 
