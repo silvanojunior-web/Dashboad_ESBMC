@@ -13,36 +13,65 @@ document.addEventListener('DOMContentLoaded', function() {
  * 4. Renderiza o primeiro relatório da lista.
  */
 async function iniciarDashboard() {
-    // URL do seu arquivo de índice no repositório de dados.
-    // SUBSTITUA COM SEUS DADOS REAIS!
-  // LINHA CORRETA (EXEMPLO):
-const URL_INDICE = 'https://raw.githubusercontent.com/silvanojunior-web/dashboard-dados/refs/heads/main/index.json'; 
+    const URL_INDICE = 'https://raw.githubusercontent.com/silvanojunior-web/dashboard-dados/main/index.json';
+    
     try {
         const responseIndex = await fetch(URL_INDICE);
         if (!responseIndex.ok) throw new Error(`Não foi possível carregar o arquivo de índice: ${responseIndex.statusText}`);
         
         const indice = await responseIndex.json();
-        const arquivosParaBuscar = indice.arquivos_participantes; // Use a chave correta do seu index.json
+        const arquivosParaBuscar = indice.arquivos_participantes;
 
-        // Busca todos os arquivos de relatório em paralelo
-        const promessas = arquivosParaBuscar.map(url => fetch(url).then(res => res.json()));
-        const resultadosCarregados = await Promise.all(promessas);
+        // --- INÍCIO DA MODIFICAÇÃO IMPORTANTE ---
 
-        // Armazena os resultados. O seu código original esperava data[0],
-        // então vamos garantir que cada resultado seja o primeiro elemento do seu array.
+        const promessas = arquivosParaBuscar.map(url =>
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        // Se o arquivo não for encontrado (erro 404), já descarta aqui
+                        throw new Error(`Arquivo não encontrado em ${url}`);
+                    }
+                    return response.text(); // 1. Pega o arquivo como TEXTO puro
+                })
+                .then(texto => {
+                    try {
+                        if (!texto) {
+                           // Se o arquivo estiver vazio, descarta
+                           throw new Error("Arquivo está vazio.");
+                        }
+                        return JSON.parse(texto); // 2. Tenta converter (parsear) o texto para JSON
+                    } catch (e) {
+                        // 3. Se a conversão falhar, avisa no console e retorna null
+                        console.warn(`AVISO: Falha ao processar o JSON de ${url}. O arquivo pode estar corrompido ou mal formatado.`, e.message);
+                        return null; 
+                    }
+                })
+                .catch(error => {
+                    // Captura erros de rede ou arquivos não encontrados
+                    console.error(`ERRO: Não foi possível carregar o relatório de ${url}.`, error.message);
+                    return null;
+                })
+        );
+
+        const resultadosCarregadosComNulos = await Promise.all(promessas);
+
+        // 4. Filtra e remove todos os resultados que falharam (retornaram null)
+        const resultadosCarregados = resultadosCarregadosComNulos.filter(res => res !== null);
+
+        // --- FIM DA MODIFICAÇÃO IMPORTANTE ---
+
+        // Armazena os resultados válidos que sobraram
         todosOsResultados = resultadosCarregados.map((data, index) => ({
-            // Usamos o nome do arquivo como um título padrão
             titulo: new URL(arquivosParaBuscar[index]).pathname.split('/').pop(),
-            // Seu código original usava data[0], então pegamos o primeiro item de cada arquivo carregado
-            dados: data[0] 
+            dados: data[0]
         }));
 
-        if (todosOsResultados.length === 0) throw new Error("Nenhum relatório foi carregado.");
+        if (todosOsResultados.length === 0) {
+            // Se nenhum relatório pôde ser carregado, mostra um status amigável
+            throw new Error("Nenhum relatório válido foi encontrado ou carregado.");
+        }
 
-        // Cria o menu dropdown
         criarSeletorDeRelatorios();
-        
-        // Renderiza o primeiro relatório por padrão
         renderDashboard(todosOsResultados[0].dados);
 
     } catch (error) {
@@ -240,5 +269,6 @@ function limparDashboard() {
     document.getElementById('codigo-fonte-wrapper').innerHTML = '';
     document.getElementById('traco-execucao').innerHTML = '';
 }
+
 
 
