@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
 async function iniciarDashboard() {
     // URL do seu arquivo de índice no repositório de dados.
     // SUBSTITUA COM SEUS DADOS REAIS!
-    const URL_INDICE = 'https://raw.githubusercontent.com/SEU-USUARIO/SEU-REPOSITORIO-DE-DADOS/main/index.json';
-
+  // LINHA CORRETA (EXEMPLO):
+const URL_INDICE = 'https://raw.githubusercontent.com/silvanajunior-web/dashboard-dados/main/index.json'; 
     try {
         const responseIndex = await fetch(URL_INDICE);
         if (!responseIndex.ok) throw new Error(`Não foi possível carregar o arquivo de índice: ${responseIndex.statusText}`);
@@ -240,3 +240,4 @@ function limparDashboard() {
     document.getElementById('codigo-fonte-wrapper').innerHTML = '';
     document.getElementById('traco-execucao').innerHTML = '';
 }
+
